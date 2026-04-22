@@ -1,4 +1,5 @@
 import pygame
+from random import randint, choice
 
 pygame.init()
 screen = pygame.display.set_mode((800, 400))
@@ -42,9 +43,57 @@ class Player(pygame.sprite.Sprite):
         self.apply_gravity()
         self.animate_state()
 
+class Obstacle(pygame.sprite.Sprite):
+    def __init__(self, type):
+        super().__init__()
 
+        if type == 'fly':
+            fly_move_1 = pygame.image.load('graphics/fly1.png').convert_alpha()
+            fly_move_2 = pygame.image.load('graphics/fly2.png').convert_alpha()
+            self.frames = [fly_move_1, fly_move_2]
+            y_pos = 210
+
+        if type == 'snail':
+            snail_move_1 = pygame.image.load('graphics/snail1.png').convert_alpha()
+            snail_move_2 = pygame.image.load('graphics/snail2.png').convert_alpha()            
+            self.frames = [snail_move_1, snail_move_2]
+            y_pos = 300
+        
+        self.index = 0
+        self.image = self.frames[self.index]
+        self.rect = self.image.get_rect(midbottom=(randint(900, 1080), y_pos))
+    
+    def animation_state(self):
+        self.index += 0.1
+        if self.index >= len(self.frames):
+            self.index = 0
+        self.image = self.frames[int(self.index)]
+    
+    def destroy(self):
+        if self.rect.x <= -100:
+            self.kill()
+    
+    def update(self):
+        self.animation_state()
+        self.destroy()
+        self.rect.x -= 6
+
+def collision_sprite():
+    if pygame.sprite.spritecollide(player.sprite, obstacle, False):
+        obstacle.empty()
+        return False
+    else:
+        return True
+
+# Player
 player = pygame.sprite.GroupSingle()
 player.add(Player())
+
+# Obstacle
+obstacle = pygame.sprite.Group()
+obstacle_timer = pygame.USEREVENT + 1
+pygame.time.set_timer(obstacle_timer, 900)
+
 pygame.display.set_caption('Runner')
 clock = pygame.time.Clock()
 
@@ -55,6 +104,8 @@ font_pixeltype = pygame.font.Font('font/pixeltype.ttf', 50)
 
 while True:
     for event in pygame.event.get():
+        if event.type == obstacle_timer:
+            obstacle.add(Obstacle(choice(['fly', 'snail', 'snail'])))
         if event.type == pygame.QUIT:
             pygame.quit()
             exit()
@@ -71,6 +122,12 @@ while True:
     # Draw player
     player.draw(screen)
     player.update()
+
+    # Draw obstacles
+    obstacle.draw(screen)
+    obstacle.update()
+
+    game_active = collision_sprite()
 
     pygame.display.update()
     clock.tick(60)
